@@ -29,10 +29,6 @@
 #load "expression_scanner.cmo";;
 open Expression_scanner;;
 
-let test = string_to_token_list "2 1 +";;
-
-
-
 
 
 (* PARTIE I *)
@@ -40,9 +36,26 @@ let test = string_to_token_list "2 1 +";;
 
 
 (* fonction vérifiant si un mot de Lukasiewicz postfixé est bien formé *)
-let is_well_formed token_list =
-
+let rec is_well_formed_aux token_list =
+  match token_list with
+  | [] -> 0
+  | elem::tail -> (
+    match elem with
+    | Variable(value) -> -1 + (is_well_formed_aux tail)
+    | Number(value) -> -1 + (is_well_formed_aux tail)
+    | End -> 0 + (is_well_formed_aux tail)
+    | Minus -> 0 + (is_well_formed_aux tail)
+    | _ -> 1 + (is_well_formed_aux tail)
+  )
 ;;
+
+let is_well_formed token_list =
+  is_well_formed_aux token_list = -1
+;;
+
+let test_well_formed = string_to_token_list "13 2 5 * 1 0 / - + ;";;
+
+is_well_formed test_well_formed;;
 
 
 (* définitions des types pour les arbres *)
@@ -68,8 +81,6 @@ let rec parse token_list =
 
 
 
-
-
 (* PARTIE II *)
 (* Simplification sur l'arbre *)
 
@@ -82,8 +93,6 @@ let rec simplificate_tree tree =
 
 
 
-
-
 (* PARTIE III *)
 (* Affichage du résultat *)
 
@@ -92,8 +101,6 @@ let rec simplificate_tree tree =
 let display_expr tree =
 
 ;;
-
-
 
 
 
