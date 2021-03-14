@@ -69,8 +69,16 @@ type tree =
 
 
 (* fonction qui transfome une liste de token en arbre *)
-let rec parse_aux token_list =
-
+let rec parse_aux token_list tree stack=
+  match token_list with
+  | [End] -> tree
+  | elem::tail -> (
+    match elem with
+    | Variable(value) -> value::stack
+    | Number(value) -> value::stack
+    | Minus ->
+    | End -> tree
+    | _ -> 
 ;;
 
 let rec parse token_list =
