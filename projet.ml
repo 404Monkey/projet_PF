@@ -89,7 +89,6 @@ let rec parse_aux token_list stack=
            parse_aux tail (Binary(token_to_operator(elem), elem1, elem2)::pile)
   )
 ;;
-(* trouver un moyen de rassembler tous les opérateurs, le '_' ne marche pas *)
 
 let rec parse token_list =
   if(is_well_formed token_list)
@@ -101,18 +100,36 @@ parse test_well_formed;;
 
 
 
-
 (* PARTIE II *)
 (* Simplification sur l'arbre *)
 
-
 (* fonction qui simplifie l'arbre (peut-etre faire plein de 
 sous fonctions pour que ce soit plus lisible *)
-let rec simplificate_tree tree =
-
+let simplificate_cst op =
+  match op with
+  | Plus -> (+)
+  | Minus -> (-)
+  | Mult -> ( * )
+  | Div -> (/)
 ;;
 
+let rec simplificate tree =
+  match tree with 
+  | Cst(x) -> tree
+  | Var(x) -> tree
+  | Unary(x) -> tree (* TODO : cas unary *)
+  | Binary(op, e1, e2) -> (
+    match(op, e1, e2) with
+    | (_, Cst(number1), Cst(number2)) -> Cst(simplificate_cst op number1 number2)
+    (* TODO : Faire touts les cas spécifié dans la partie II *)
+    | (_, _, _) -> simplificate(Binary(op, simplificate e1, simplificate e2))
+  ) 
+;;
 
+let t2_list = string_to_token_list "1 2 + 4 3 - * ;";;
+let t2 = parse t2_list;;
+
+simplificate t2;;
 
 
 
