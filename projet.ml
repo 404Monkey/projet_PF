@@ -65,6 +65,15 @@ type tree =
   | Binary of operator * tree * tree
 ;;
 
+let token_to_operator elem =
+  match elem with
+  | Add -> Plus
+  | Subtract -> Minus
+  | Multiply -> Mult
+  | Divide -> Div
+  | _ -> invalid_arg "on ne peut pas convertir ce token en operator"
+;;
+
 (* fonction qui transfome une liste de token en arbre *)
 let rec parse_aux token_list stack=
   match token_list with
@@ -73,12 +82,11 @@ let rec parse_aux token_list stack=
     match elem with
     | Variable(value) -> parse_aux tail (Var(value)::stack)
     | Number(value) -> parse_aux tail (Cst(value)::stack)
-    | Minus -> parse_aux tail (Unary(hd stack)::(tl stack))
-    | Add -> parse_aux tail (Binary(Plus, (hd (tl stack)), (hd stack))::(tl(tl stack)))
-    | Subtract -> parse_aux tail (Binary(Minus, (hd (tl stack)), (hd stack))::(tl(tl stack)))
-    | Multiply -> parse_aux tail (Binary(Mult, (hd (tl stack)), (hd stack))::(tl(tl stack)))
-    | Divide -> parse_aux tail (Binary(Div, (hd (tl stack)), (hd stack))::(tl(tl stack)))
+    | Minus -> let elem1 = (hd stack) and pile = (tl stack) in
+               parse_aux tail (Unary(elem1)::pile)
     | End -> hd stack
+    | _ -> let elem1 = (hd (tl stack)) and elem2 = (hd stack) and pile = (tl(tl stack)) in
+           parse_aux tail (Binary(token_to_operator(elem), elem1, elem2)::pile)
   )
 ;;
 (* trouver un moyen de rassembler tous les opérateurs, le '_' ne marche pas *)
