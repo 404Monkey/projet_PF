@@ -52,7 +52,7 @@ let is_well_formed token_list =
   is_well_formed_aux token_list = -1
 ;;
 
-let test_well_formed = string_to_token_list "13 2 5 * 1 0 / - + ;";;
+let test_well_formed = string_to_token_list "13 2 5 * 1 1 / - + ;";;
 
 is_well_formed test_well_formed;;
 
@@ -96,7 +96,7 @@ let rec parse token_list =
   else failwith "not a Lukasiewicz word" (* mettre autre chose qu'un failwith *)
 ;;
 
-parse test_well_formed;;
+let t1 = parse test_well_formed;;
 
 
 
@@ -117,19 +117,39 @@ let rec simplificate tree =
   match tree with 
   | Cst(x) -> tree
   | Var(x) -> tree
-  | Unary(x) -> tree (* TODO : cas unary *)
+  | Unary(x) -> (
+    match x with
+    | Cst(elem) -> Cst(-elem) (* impossible de tomber sur ce cas *)
+    | _ -> Unary(simplificate x)
+  )
   | Binary(op, e1, e2) -> (
     match(op, e1, e2) with
     | (_, Cst(number1), Cst(number2)) -> Cst(simplificate_cst op number1 number2)
-    (* TODO : Faire touts les cas spécifié dans la partie II *)
+    | (Mult, Cst(1), Var(x)) -> Var(x)
+    | (Mult, Var(x), Cst(1)) -> Var(x)
+    | (Plus, Cst(0), Var(x)) -> Var(x)
+    | (Plus, Var(x), Cst(0)) -> Var(x)
+    | (Mult, Cst(0), Var(x)) -> Cst(0)
+    | (Mult, Var(x), Cst(0)) -> Cst(0)
+    | (Minus, Var(x), Var(y)) -> if(x=y) then Cst(0) else Binary(op, e1, e2)
+    | (Div, Var(x), Var(y)) -> if(x=y) then Cst(1) else Binary(op, e1, e2)
+    | (_, Var(x), _) -> tree
+    | (_, _, Var(x)) -> tree
     | (_, _, _) -> simplificate(Binary(op, simplificate e1, simplificate e2))
   ) 
 ;;
+(* TODO : optimiser + tester cas des variable *)
 
-let t2_list = string_to_token_list "1 2 + 4 3 - * ;";;
+
+let t2_list = string_to_token_list "1 2 + 4 3 - * ~;";;
 let t2 = parse t2_list;;
-
 simplificate t2;;
+
+let t3_list = string_to_token_list "1 x * y 0 + * ;";;
+let t3 = parse t3_list;;
+simplificate t3;;
+
+simplificate t1;;
 
 
 
@@ -141,8 +161,6 @@ simplificate t2;;
 let display_expr tree =
 
 ;;
-
-
 
 
 
