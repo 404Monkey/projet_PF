@@ -119,8 +119,8 @@ let rec simplificate tree =
   | Var(x) -> tree
   | Unary(x) -> (
     match x with
-    | Cst(elem) -> Cst(-elem) (* impossible de tomber sur ce cas *)
-    | _ -> Unary(simplificate x)
+    | Cst(elem) -> Cst(-elem)
+    | _ -> simplificate(Unary(simplificate x))
   )
   | Binary(op, e1, e2) -> (
     match(op, e1, e2) with
@@ -148,6 +148,10 @@ simplificate t2;;
 let t3_list = string_to_token_list "1 x * y 0 + * ;";;
 let t3 = parse t3_list;;
 simplificate t3;;
+
+let t4_list = string_to_token_list "x x - x x / + ~ ;";;
+let t4 = parse t4_list;;
+simplificate t4;;
 
 simplificate t1;;
 
