@@ -113,6 +113,16 @@ let simplificate_cst op =
   | Div -> (/)
 ;;
 
+let simplificate_var op e1 e2 =
+  match (op, e1, e2) with
+  | (Mult, Cst(1), Var(x)) | (Mult, Var(x), Cst(1)) -> Var(x)
+  | (Plus, Cst(0), Var(x)) | (Plus, Var(x), Cst(0)) -> Var(x)
+  | (Mult, Cst(0), Var(x)) | (Mult, Var(x), Cst(0)) -> Cst(0)
+  | (Minus, Var(x), Var(y)) -> if(x=y) then Cst(0) else Binary(op, e1, e2)
+  | (Div, Var(x), Var(y)) -> if(x=y) then Cst(1) else Binary(op, e1, e2)
+  | (_, _, _) -> Binary(op, e1, e2)
+;;
+
 let rec simplificate tree =
   match tree with 
   | Cst(x) -> tree
@@ -125,16 +135,8 @@ let rec simplificate tree =
   | Binary(op, e1, e2) -> (
     match(op, e1, e2) with
     | (_, Cst(number1), Cst(number2)) -> Cst(simplificate_cst op number1 number2)
-    | (Mult, Cst(1), Var(x)) -> Var(x)
-    | (Mult, Var(x), Cst(1)) -> Var(x)
-    | (Plus, Cst(0), Var(x)) -> Var(x)
-    | (Plus, Var(x), Cst(0)) -> Var(x)
-    | (Mult, Cst(0), Var(x)) -> Cst(0)
-    | (Mult, Var(x), Cst(0)) -> Cst(0)
-    | (Minus, Var(x), Var(y)) -> if(x=y) then Cst(0) else Binary(op, e1, e2)
-    | (Div, Var(x), Var(y)) -> if(x=y) then Cst(1) else Binary(op, e1, e2)
-    | (_, Var(x), _) -> tree
-    | (_, _, Var(x)) -> tree
+    | (_, Var(x), _) -> simplificate_var op e1 e2 
+    | (_, _, Var(x)) -> simplificate_var op e1 e2
     | (_, _, _) -> simplificate(Binary(op, simplificate e1, simplificate e2))
   ) 
 ;;
