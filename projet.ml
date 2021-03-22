@@ -163,7 +163,7 @@ simplificate t1;;
 
 (* fonction qui transfrome un arbre en expression *)
 let string_of_char = String.make 1;;
-string_of_char 'c';;
+
 let rec display_expr tree =
   match tree with
   | Cst(x) -> string_of_int x
@@ -173,7 +173,6 @@ let rec display_expr tree =
        match x with
        | Cst(y) -> "(-" ^ display_expr x ^")"
        | Var(y) -> "(-" ^ display_expr x ^")"
-       (*| Var(x) -> "(-" ^ string_of_char x ^ ")"*)
        | _ ->  "-(" ^ display_expr x ^ ")"
      end
   | Binary(op, e1, e2) ->
@@ -198,7 +197,9 @@ display_expr t0;;
 display_expr t2;;
 display_expr t3;;
 display_expr t4;;
-
+let t_exemple_list = string_to_token_list "a b * c * e f + * ;";;
+let t_exemple = parse t_exemple_list;;
+display_expr t_exemple;;
 
 (* PARTIE IV *)
 (* Programme final *)
