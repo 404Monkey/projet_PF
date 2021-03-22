@@ -56,7 +56,22 @@ let test_well_formed = string_to_token_list "13 2 5 * 1 1 / - + ;";;
 
 is_well_formed test_well_formed;;
 
-(* définitions des types pour les arbres *)
+(* version fonctionnelle *)
+let is_well_formed_bis token_list =
+  let verif = fold_left(
+                  fun cpt elem ->
+                  match elem with
+                  | Variable(value) -> cpt-1
+                  | Number(value) -> cpt-1
+                  | End | Minus -> cpt
+                  | _ -> cpt+1
+                ) 0 token_list in
+  verif = -1
+;;
+is_well_formed_bis test_well_formed;;
+                  
+
+(* définitions des types pour les arbres de syntaxe abstraite*)
 type operator = | Plus | Minus | Mult | Div;;
 type tree =
   | Var of char
@@ -98,7 +113,26 @@ let rec parse token_list =
 
 let t1 = parse test_well_formed;;
 
-
+(* version fonctionnelle *)
+let parse_aux_bis token_list =
+  let stack = fold_left(
+                  fun cumul elem ->
+                  match elem with
+                  | Variable(value) -> Var(value)::cumul
+                  | Number(value) -> Cst(value)::cumul
+                  | Minus -> let elem1 = (hd cumul) and pile = (tl cumul) in Unary(elem1)::pile
+                  | End -> cumul
+                  | _ -> let elem1 = (hd (tl cumul)) and elem2 = (hd cumul) and pile = (tl(tl cumul)) in
+                         (Binary(token_to_operator(elem), elem1, elem2)::pile)
+                ) [] token_list in
+  hd stack
+;;
+let rec parse_bis token_list =
+  if(is_well_formed token_list)
+  then parse_aux_bis token_list
+  else failwith "not a Lukasiewicz word" (* mettre autre chose qu'un failwith *)
+;;
+parse_bis test_well_formed;;
 
 (* PARTIE II *)
 (* Simplification sur l'arbre *)
@@ -142,6 +176,43 @@ let rec simplificate tree =
 ;;
 (* TODO : optimiser + tester cas des variable *)
 
+(* test non_concluant *)
+let t0_list = string_to_token_list "x 3 2 - * ;";;
+let t0 = parse t0_list;;
+simplificate t0;;
+
+(* proposition concluante+opti *)
+let simplificate_var_bis op e1 e2 func =
+  match (op, e1, e2) with
+  | (Mult, var, Cst(1)) | (Mult, Cst(1), var) | (Plus, var, Cst(0)) | (Plus, Cst(0), var) -> var
+  | (Mult, var, Cst(0)) | (Mult, Cst(0), var) -> Cst(0)
+  | (Minus, Var(x), Var(y)) -> if(x=y) then Cst(0) else Binary(op, e1, e2)
+  | (Div, Var(x), Var(y)) -> if(x=y) then Cst(1) else Binary(op, e1, e2)
+  | (_, _, _) -> Binary(op, func e1, func e2)
+;;
+let rec simplificate_bis tree =
+  match tree with 
+  | Cst(x) -> tree
+  | Var(x) -> tree
+  | Unary(x) -> (
+    match x with
+    | Cst(elem) -> Cst(-elem)
+    | _ -> simplificate_bis(Unary(simplificate_bis x))
+  )
+  | Binary(op, e1, e2) -> (
+    match(op, e1, e2) with
+    | (_, Cst(number1), Cst(number2)) -> Cst(simplificate_cst op number1 number2)
+    | (_, Var(x), _) -> simplificate_var_bis op e1 e2 simplificate_bis
+    | (_, _, Var(x)) -> simplificate_var_bis op e2 e1 simplificate_bis
+    | (_, _, _) -> simplificate_bis(Binary(op, simplificate_bis e1, simplificate_bis e2))
+  ) 
+;;
+let t0_list = string_to_token_list "x 3 2 - * ;";;
+let t0 = parse t0_list;;
+simplificate_bis t0;;
+
+
+(* Tests classiques *)
 
 let t2_list = string_to_token_list "1 2 + 4 3 - * ~;";;
 let t2 = parse t2_list;;
@@ -164,10 +235,38 @@ simplificate t1;;
 
 
 (* fonction qui transfrome un arbre en expression *)
-let display_expr tree =
 
+let rec display_expr tree =
+  match tree with
+  | Cst(x) -> string_of_int x
+  | Var(x) -> string_of_int (int_of_char x) (*trouver le moyen de convertir char en string *)
+  | Unary(x) ->
+     begin
+       match x with
+       | Cst(y) -> "(-" ^ display_expr x ^")"
+       | Var(y) -> "(-" ^ display_expr x ^")"
+       (*| Var(x) -> "(-" ^ string_of_char x ^ ")"*)
+       | _ ->  "-(" ^ display_expr x ^ ")"
+     end
+  | Binary(op, e1, e2) ->
+     begin
+       let (disp_e1, disp_e2) = 
+         match (e1, e2) with
+         | (Cst(x),Binary(_,_,_)) | (Cst(x),Unary(_)) -> (display_expr e1,"(" ^ display_expr e2 ^")")
+         | (Var(x),Binary(_,_,_)) | (Var(x),Unary(_)) -> (display_expr e1,"(" ^ display_expr e2 ^")")
+         | (Binary(_,_,_),Cst(x)) | (Unary(_),Cst(x)) -> ("(" ^ display_expr e1 ^ ")",display_expr e2)
+         | (Binary(_,_,_),Var(x)) | (Unary(_),Var(x)) -> ("(" ^ display_expr e1 ^ ")",display_expr e2)
+         | (Binary(_,_,_),Binary(_,_,_)) | (Binary(_,_,_),Unary(_)) | (Unary(_),Binary(_,_,_)) -> ("(" ^ display_expr e1 ^ ")","(" ^ display_expr e2 ^ ")")
+         | (_,_) -> (display_expr e1, display_expr e2)
+       in
+       match op with
+       | Plus -> disp_e1 ^ "+" ^ disp_e2
+       | Minus -> disp_e1 ^ "-" ^ disp_e2
+       | Mult -> disp_e1 ^ "*" ^ disp_e2
+       | Div -> disp_e1 ^ "/" ^ disp_e2
+     end             
 ;;
-
+display_expr t0;;
 
 
 (* PARTIE IV *)
