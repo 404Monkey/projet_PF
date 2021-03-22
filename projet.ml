@@ -162,11 +162,12 @@ simplificate t1;;
 
 
 (* fonction qui transfrome un arbre en expression *)
-
+let string_of_char = String.make 1;;
+string_of_char 'c';;
 let rec display_expr tree =
   match tree with
   | Cst(x) -> string_of_int x
-  | Var(x) -> string_of_int (int_of_char x) (*trouver le moyen de convertir char en string *)
+  | Var(x) -> string_of_char x (*trouver le moyen de convertir char en string *)
   | Unary(x) ->
      begin
        match x with
@@ -194,6 +195,9 @@ let rec display_expr tree =
      end             
 ;;
 display_expr t0;;
+display_expr t2;;
+display_expr t3;;
+display_expr t4;;
 
 
 (* PARTIE IV *)
