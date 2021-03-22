@@ -204,6 +204,12 @@ display_expr t4;;
 (* Programme final *)
 
 
-let main =
-
+let main string =
+  let list = string_to_token_list string in
+  let tree = parse list in
+  Printf.printf "%s" (display_expr tree);
+  let tree_simplificate = simplificate tree in
+  Printf.printf "%s" (display_expr tree_simplificate);
 ;;
+
+main "x 3 + 5 7 + + 3 4 * 1 3 + / / ;";;
