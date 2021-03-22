@@ -35,40 +35,22 @@ open List;;
 (* analyse syntaxique et construction de l'arbre *)
 
 (* fonction vérifiant si un mot de Lukasiewicz postfixé est bien formé *)
-let rec is_well_formed_aux token_list =
-  match token_list with
-  | [] -> 0
-  | elem::tail -> (
-    match elem with
-    | Variable(value) -> -1 + (is_well_formed_aux tail)
-    | Number(value) -> -1 + (is_well_formed_aux tail)
-    | End -> 0 + (is_well_formed_aux tail)
-    | Minus -> 0 + (is_well_formed_aux tail)
-    | _ -> 1 + (is_well_formed_aux tail)
-  )
-;;
-
 let is_well_formed token_list =
-  is_well_formed_aux token_list = -1
+  let is_well_formed_aux =
+    fold_left(
+        fun cpt elem ->
+        match elem with
+        | Variable(value) -> cpt-1
+        | Number(value) -> cpt-1
+        | End | Minus -> cpt
+        | _ -> cpt+1
+      ) 0 token_list in
+  is_well_formed_aux = -1
 ;;
 
 let test_well_formed = string_to_token_list "13 2 5 * 1 1 / - + ;";;
 
 is_well_formed test_well_formed;;
-
-(* version fonctionnelle *)
-let is_well_formed_bis token_list =
-  let verif = fold_left(
-                  fun cpt elem ->
-                  match elem with
-                  | Variable(value) -> cpt-1
-                  | Number(value) -> cpt-1
-                  | End | Minus -> cpt
-                  | _ -> cpt+1
-                ) 0 token_list in
-  verif = -1
-;;
-is_well_formed_bis test_well_formed;;
                   
 
 (* définitions des types pour les arbres de syntaxe abstraite*)
@@ -80,6 +62,7 @@ type tree =
   | Binary of operator * tree * tree
 ;;
 
+(* fonction qui transforme un token en operator *)
 let token_to_operator elem =
   match elem with
   | Add -> Plus
@@ -90,55 +73,33 @@ let token_to_operator elem =
 ;;
 
 (* fonction qui transfome une liste de token en arbre *)
-let rec parse_aux token_list stack=
-  match token_list with
-  | [] -> hd stack
-  | elem::tail -> (
-    match elem with
-    | Variable(value) -> parse_aux tail (Var(value)::stack)
-    | Number(value) -> parse_aux tail (Cst(value)::stack)
-    | Minus -> let elem1 = (hd stack) and pile = (tl stack) in
-               parse_aux tail (Unary(elem1)::pile)
-    | End -> hd stack
-    | _ -> let elem1 = (hd (tl stack)) and elem2 = (hd stack) and pile = (tl(tl stack)) in
-           parse_aux tail (Binary(token_to_operator(elem), elem1, elem2)::pile)
-  )
+let parse_aux token_list =
+  let stack =
+    fold_left(
+        fun cumul elem ->
+        match elem with
+        | Variable(value) -> Var(value)::cumul
+        | Number(value) -> Cst(value)::cumul
+        | Minus -> let elem1 = (hd cumul) and pile = (tl cumul) in Unary(elem1)::pile
+        | End -> cumul
+        | _ -> let elem1 = (hd (tl cumul)) and elem2 = (hd cumul) and pile = (tl(tl cumul)) in
+               (Binary(token_to_operator(elem), elem1, elem2)::pile)
+      ) [] token_list in
+  hd stack
 ;;
 
 let rec parse token_list =
   if(is_well_formed token_list)
-  then parse_aux token_list []
+  then parse_aux token_list
   else failwith "not a Lukasiewicz word" (* mettre autre chose qu'un failwith *)
 ;;
 
 let t1 = parse test_well_formed;;
 
-(* version fonctionnelle *)
-let parse_aux_bis token_list =
-  let stack = fold_left(
-                  fun cumul elem ->
-                  match elem with
-                  | Variable(value) -> Var(value)::cumul
-                  | Number(value) -> Cst(value)::cumul
-                  | Minus -> let elem1 = (hd cumul) and pile = (tl cumul) in Unary(elem1)::pile
-                  | End -> cumul
-                  | _ -> let elem1 = (hd (tl cumul)) and elem2 = (hd cumul) and pile = (tl(tl cumul)) in
-                         (Binary(token_to_operator(elem), elem1, elem2)::pile)
-                ) [] token_list in
-  hd stack
-;;
-let rec parse_bis token_list =
-  if(is_well_formed token_list)
-  then parse_aux_bis token_list
-  else failwith "not a Lukasiewicz word" (* mettre autre chose qu'un failwith *)
-;;
-parse_bis test_well_formed;;
-
 (* PARTIE II *)
 (* Simplification sur l'arbre *)
 
-(* fonction qui simplifie l'arbre (peut-etre faire plein de 
-sous fonctions pour que ce soit plus lisible *)
+(* fonction qui simplifie  *)
 let simplificate_cst op =
   match op with
   | Plus -> (+)
@@ -147,16 +108,16 @@ let simplificate_cst op =
   | Div -> (/)
 ;;
 
-let simplificate_var op e1 e2 =
+(* proposition concluante+opti *)
+let simplificate_var op e1 e2 func =
   match (op, e1, e2) with
-  | (Mult, Cst(1), Var(x)) | (Mult, Var(x), Cst(1)) -> Var(x)
-  | (Plus, Cst(0), Var(x)) | (Plus, Var(x), Cst(0)) -> Var(x)
-  | (Mult, Cst(0), Var(x)) | (Mult, Var(x), Cst(0)) -> Cst(0)
+  | (Mult, var, Cst(1)) | (Mult, Cst(1), var) | (Plus, var, Cst(0)) | (Plus, Cst(0), var) -> var
+  | (Mult, var, Cst(0)) | (Mult, Cst(0), var) -> Cst(0)
   | (Minus, Var(x), Var(y)) -> if(x=y) then Cst(0) else Binary(op, e1, e2)
   | (Div, Var(x), Var(y)) -> if(x=y) then Cst(1) else Binary(op, e1, e2)
-  | (_, _, _) -> Binary(op, e1, e2)
+  | (_, Var(x), Var(y)) -> Binary(op, e1, e2)
+  | (_, _, _) -> func(Binary(op, func e1, func e2))
 ;;
-
 let rec simplificate tree =
   match tree with 
   | Cst(x) -> tree
@@ -169,47 +130,13 @@ let rec simplificate tree =
   | Binary(op, e1, e2) -> (
     match(op, e1, e2) with
     | (_, Cst(number1), Cst(number2)) -> Cst(simplificate_cst op number1 number2)
-    | (_, Var(x), _) -> simplificate_var op e1 e2 
-    | (_, _, Var(x)) -> simplificate_var op e1 e2
+    | (_, Var(x), _) | (_, _, Var(x)) -> simplificate_var op e2 e1 simplificate
     | (_, _, _) -> simplificate(Binary(op, simplificate e1, simplificate e2))
   ) 
 ;;
-(* TODO : optimiser + tester cas des variable *)
-
-(* test non_concluant *)
 let t0_list = string_to_token_list "x 3 2 - * ;";;
 let t0 = parse t0_list;;
 simplificate t0;;
-
-(* proposition concluante+opti *)
-let simplificate_var_bis op e1 e2 func =
-  match (op, e1, e2) with
-  | (Mult, var, Cst(1)) | (Mult, Cst(1), var) | (Plus, var, Cst(0)) | (Plus, Cst(0), var) -> var
-  | (Mult, var, Cst(0)) | (Mult, Cst(0), var) -> Cst(0)
-  | (Minus, Var(x), Var(y)) -> if(x=y) then Cst(0) else Binary(op, e1, e2)
-  | (Div, Var(x), Var(y)) -> if(x=y) then Cst(1) else Binary(op, e1, e2)
-  | (_, _, _) -> Binary(op, func e1, func e2)
-;;
-let rec simplificate_bis tree =
-  match tree with 
-  | Cst(x) -> tree
-  | Var(x) -> tree
-  | Unary(x) -> (
-    match x with
-    | Cst(elem) -> Cst(-elem)
-    | _ -> simplificate_bis(Unary(simplificate_bis x))
-  )
-  | Binary(op, e1, e2) -> (
-    match(op, e1, e2) with
-    | (_, Cst(number1), Cst(number2)) -> Cst(simplificate_cst op number1 number2)
-    | (_, Var(x), _) -> simplificate_var_bis op e1 e2 simplificate_bis
-    | (_, _, Var(x)) -> simplificate_var_bis op e2 e1 simplificate_bis
-    | (_, _, _) -> simplificate_bis(Binary(op, simplificate_bis e1, simplificate_bis e2))
-  ) 
-;;
-let t0_list = string_to_token_list "x 3 2 - * ;";;
-let t0 = parse t0_list;;
-simplificate_bis t0;;
 
 
 (* Tests classiques *)
