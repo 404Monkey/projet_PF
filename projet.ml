@@ -100,7 +100,7 @@ let t1 = parse test_well_formed;;
 (* Simplification sur l'arbre *)
 
 (* fonction qui simplifie  *)
-let simplificate_cst op =
+let simpl_cst op =
   match op with
   | Plus -> (+)
   | Minus -> (-)
@@ -109,31 +109,35 @@ let simplificate_cst op =
 ;;
 
 (* proposition concluante+opti *)
-let simplificate_var op e1 e2 func =
-  match (op, e1, e2) with
-  | (Mult, var, Cst(1)) | (Mult, Cst(1), var) | (Plus, var, Cst(0)) | (Plus, Cst(0), var) -> var
-  | (Mult, var, Cst(0)) | (Mult, Cst(0), var) -> Cst(0)
-  | (Minus, Var(x), Var(y)) -> if(x=y) then Cst(0) else Binary(op, e1, e2)
-  | (Div, Var(x), Var(y)) -> if(x=y) then Cst(1) else Binary(op, e1, e2)
-  | (_, Var(x), Var(y)) -> Binary(op, e1, e2)
-  | (_, _, _) -> func(Binary(op, func e1, func e2))
+let simpl_tree op e1 e2 =
+  if(e1 = e2)
+  then
+    match(op) with
+    | Minus -> Cst(0)
+    | Div -> Cst(1)
+    | _ -> Binary(op, e1, e2)
+  else
+    match (op, e1, e2) with
+    | (Mult, var, Cst(1))
+      | (Mult, Cst(1), var)
+      | (Plus, var, Cst(0))
+      | (Plus, Cst(0), var) -> var
+    | (Mult, var, Cst(0))
+      | (Mult, Cst(0), var) -> Cst(0)
+    | _ -> Binary(op, e1, e2)
 ;;
+
 let rec simplificate tree =
   match tree with 
-  | Cst(x) -> tree
-  | Var(x) -> tree
-  | Unary(x) -> (
-    match x with
-    | Cst(elem) -> Cst(-elem)
-    | _ -> simplificate(Unary(simplificate x))
-  )
   | Binary(op, e1, e2) -> (
-    match(op, e1, e2) with
-    | (_, Cst(number1), Cst(number2)) -> Cst(simplificate_cst op number1 number2)
-    | (_, Var(x), _) | (_, _, Var(x)) -> simplificate_var op e2 e1 simplificate
-    | (_, _, _) -> simplificate(Binary(op, simplificate e1, simplificate e2))
-  ) 
+    match(simpl e1, simpl e2) with
+    | (Cst(number1), Cst(number2)) -> Cst(simpl_cst op number1 number2)
+    | (simpl_e1, simpl_e2) -> simpl_tree op simpl_e1 simpl_e2
+  )
+  | Unary(x) -> Unary(simplificate x)
+  | _ -> tree
 ;;
+
 let t0_list = string_to_token_list "x 3 2 - * ;";;
 let t0 = parse t0_list;;
 simplificate t0;;
@@ -141,7 +145,7 @@ simplificate t0;;
 
 (* Tests classiques *)
 
-let t2_list = string_to_token_list "1 2 + 4 3 - * ~;";;
+let t2_list = string_to_token_list "1 2 + 4 3 - * ;";;
 let t2 = parse t2_list;;
 simplificate t2;;
 
@@ -208,9 +212,10 @@ display_expr t_exemple;;
 let main string =
   let list = string_to_token_list string in
   let tree = parse list in
-  Printf.printf "%s" (display_expr tree);
+  let expre = (display_expr tree) in
+  Printf.printf "%s\n" expre;
   let tree_simplificate = simplificate tree in
-  Printf.printf "%s" (display_expr tree_simplificate);
+  Printf.printf "%s\n" (display_expr tree_simplificate);
 ;;
 
 main "x 3 + 5 7 + + 3 4 * 1 3 + / / ;";;
