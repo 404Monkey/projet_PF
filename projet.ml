@@ -130,7 +130,7 @@ let simpl_tree op e1 e2 =
 let rec simplificate tree =
   match tree with 
   | Binary(op, e1, e2) -> (
-    match(simpl e1, simpl e2) with
+    match(simplificate e1, simplificate e2) with
     | (Cst(number1), Cst(number2)) -> Cst(simpl_cst op number1 number2)
     | (simpl_e1, simpl_e2) -> simpl_tree op simpl_e1 simpl_e2
   )
