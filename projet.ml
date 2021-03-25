@@ -164,9 +164,9 @@ simplificate t1;;
 (* PARTIE III *)
 (* Affichage du résultat *)
 
+let string_of_char = String.make 1;;
 
 (* fonction qui transfrome un arbre en expression *)
-let string_of_char = String.make 1;;
 
 let string_of_operator op =
   match op with
@@ -175,38 +175,115 @@ let string_of_operator op =
   | Plus -> "+"
   | Minus -> "-"
 ;;
-
-let rec expr_to_tree tree =
+       
+let simplificate_expr op e1 e2 op1 op2 func =
+  if (op1=op)&&(op2=op)
+  then (tree_to_expr e1, tree_to_expr e2)
+  else if op1=op
+  then (tree_to_expr e1,"(" ^ tree_to_expr e2 ^ ")")
+  else if op2=op
+  then ("(" ^ tree_to_expr e1 ^ ")", tree_to_expr e2)
+  else ("(" ^ tree_to_expr e1 ^ ")","(" ^ tree_to_expr e2 ^ ")")
+;;
+         
+let rec tree_to_expr tree =
   match tree with
   | Cst(x) -> string_of_int x
   | Var(x) -> string_of_char x 
   | Unary(x) ->
      begin
        match x with
-       | Binary(_,_,_) | Unary(_) -> "-(" ^ display_expr x ^ ")"
-       | _ -> "(-" ^ display_expr x ^")"
+       | Binary(_,_,_) | Unary(_) -> "-(" ^ tree_to_expr x ^ ")"
+       | _ -> "(-" ^ tree_to_expr x ^")"
      end
   | Binary(op, e1, e2) ->
      begin
-       let (disp_e1, disp_e2) = 
+       let (expr_e1, expr_e2) = 
          match (e1, e2) with
-         | (Cst(x),Binary(_,_,_)) | (Cst(x),Unary(_)) -> (display_expr e1,"(" ^ display_expr e2 ^")")
-         | (Var(x),Binary(_,_,_)) | (Var(x),Unary(_)) -> (display_expr e1,"(" ^ display_expr e2 ^")")
-         | (Binary(_,_,_),Cst(x)) | (Unary(_),Cst(x)) -> ("(" ^ display_expr e1 ^ ")",display_expr e2)
-         | (Binary(_,_,_),Var(x)) | (Unary(_),Var(x)) -> ("(" ^ display_expr e1 ^ ")",display_expr e2)
-         | (Binary(_,_,_),Binary(_,_,_)) | (Binary(_,_,_),Unary(_)) | (Unary(_),Binary(_,_,_)) -> ("(" ^ display_expr e1 ^ ")","(" ^ display_expr e2 ^ ")")
-         | (_,_) -> (display_expr e1, display_expr e2)
+         | (Binary(op1,_,_),Binary(op2,_,_)) -> simplificate_expr op e1 e2 op1 op2 tree_to_expr
+         | (Binary(op1,_,_),_) ->
+            begin
+              if op1=op
+              then (tree_to_expr e1, tree_to_expr e2)
+              else ("(" ^ tree_to_expr e1 ^ ")",tree_to_expr e2)
+            end
+         | (_,Binary(op1,_,_)) ->
+            begin
+              if op1=op
+              then (tree_to_expr e1, tree_to_expr e2)
+              else (tree_to_expr e1,"(" ^ tree_to_expr e2 ^")")
+            end
+         | _ -> (tree_to_expr e1, tree_to_expr e2)
        in
-       disp_e1 ^ string_of_operator op ^ disp_e2
+       expr_e1 ^ string_of_operator op ^ expr_e2
      end             
 ;;
-expr_to_tree t0;;
-expr_to_tree t2;;
-expr_to_tree t3;;
-expr_to_tree t4;;
+tree_to_expr t0;;
+tree_to_expr t2;;
+tree_to_expr t3;;
+tree_to_expr t4;;
+let t_exemple_list_0 = string_to_token_list "a 2 2 ~ * + ;";;
+let t_exemple_0 = parse t_exemple_list_0;;
+tree_to_expr t_exemple_0;;
 let t_exemple_list = string_to_token_list "a b * c * e f + * ;";;
 let t_exemple = parse t_exemple_list;;
-expr_to_tree t_exemple;;
+tree_to_expr t_exemple;;
+
+(* A CONSERVER JUSQU'A CE QU'ON SOIT BON
+
+let rec tree_to_expr tree =
+  match tree with
+  | Cst(x) -> string_of_int x
+  | Var(x) -> string_of_char x 
+  | Unary(x) ->
+     begin
+       match x with
+       | Binary(_,_,_) | Unary(_) -> "-(" ^ tree_to_expr x ^ ")"
+       | _ -> "(-" ^ tree_to_expr x ^")"
+     end
+  | Binary(op, e1, e2) ->
+     begin
+       let (expr_e1, expr_e2) = 
+         match (e1, e2) with
+         | (Binary(_,_,_),Binary(_,_,_)) -> ("(" ^ tree_to_expr e1 ^ ")","(" ^ tree_to_expr e2 ^ ")")
+         | (_,Binary(_,_,_)) -> (tree_to_expr e1,"(" ^ tree_to_expr e2 ^")")
+         | (Binary(_,_,_),_) -> ("(" ^ tree_to_expr e1 ^ ")",tree_to_expr e2)
+         | _ -> (tree_to_expr e1, tree_to_expr e2)
+       in
+       expr_e1 ^ string_of_operator op ^ expr_e2
+     end             
+;;
+
+let rec string_of_tree tree =
+  match tree with
+  | Cst(n) -> string_of_int n
+  | Var(x) -> string_of_char x
+  | Unary(exp) -> "(-"^(string_of_tree exp)^")"
+  | Binary(op, x, y) ->
+     match op with
+     | Plus | Minus -> (string_of_tree x)^(string_of_operator op)^(string_of_tree y)
+     | _ ->
+        match (x, y) with
+        | (Binary(_,_,_), Binary(_,_,_)) -> "("^(string_of_tree x)^")"^(string_of_operator op)^"("^(string_of_tree y)^")"
+        | (Binary(_,_,_), _) -> "("^(string_of_tree x)^")"^(string_of_operator op)^(string_of_tree y)
+        | (_, Binary(_,_,_)) -> (string_of_tree x)^(string_of_operator op)^"("^(string_of_tree y)^")"
+        | _ -> (string_of_tree x)^(string_of_operator op)^(string_of_tree y)
+;;
+string_of_tree t0;;
+string_of_tree t2;;
+string_of_tree t3;;
+string_of_tree t4;;
+let t_exemple_list = string_to_token_list "a b * c * e f + * ;";;
+let t_exemple = parse t_exemple_list;;
+string_of_tree t_exemple;;
+ *)
+
+
+let display_expr tree =
+  Printf.printf "%s\n" (tree_to_expr tree)
+;;
+
+display_expr t_exemple;;
 
 (* PARTIE IV *)
 (* Programme final *)
@@ -215,10 +292,9 @@ expr_to_tree t_exemple;;
 let main string =
   let list = string_to_token_list string in
   let tree = parse list in
-  let expre = (display_expr tree) in
-  Printf.printf "%s\n" expre;
+  display_expr tree;
   let tree_simplificate = simplificate tree in
-  Printf.printf "%s\n" (display_expr tree_simplificate);
+  display_expr tree_simplificate;
 ;;
 
 main "x 3 + 5 7 + + 3 4 * 1 3 + / / ;";;
