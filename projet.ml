@@ -168,16 +168,23 @@ simplificate t1;;
 (* fonction qui transfrome un arbre en expression *)
 let string_of_char = String.make 1;;
 
-let rec display_expr tree =
+let string_of_operator op =
+  match op with
+  | Mult -> "*"
+  | Div -> "/"
+  | Plus -> "+"
+  | Minus -> "-"
+;;
+
+let rec expr_to_tree tree =
   match tree with
   | Cst(x) -> string_of_int x
-  | Var(x) -> string_of_char x (*trouver le moyen de convertir char en string *)
+  | Var(x) -> string_of_char x 
   | Unary(x) ->
      begin
        match x with
-       | Cst(y) -> "(-" ^ display_expr x ^")"
-       | Var(y) -> "(-" ^ display_expr x ^")"
-       | _ ->  "-(" ^ display_expr x ^ ")"
+       | Binary(_,_,_) | Unary(_) -> "-(" ^ display_expr x ^ ")"
+       | _ -> "(-" ^ display_expr x ^")"
      end
   | Binary(op, e1, e2) ->
      begin
@@ -190,20 +197,16 @@ let rec display_expr tree =
          | (Binary(_,_,_),Binary(_,_,_)) | (Binary(_,_,_),Unary(_)) | (Unary(_),Binary(_,_,_)) -> ("(" ^ display_expr e1 ^ ")","(" ^ display_expr e2 ^ ")")
          | (_,_) -> (display_expr e1, display_expr e2)
        in
-       match op with
-       | Plus -> disp_e1 ^ "+" ^ disp_e2
-       | Minus -> disp_e1 ^ "-" ^ disp_e2
-       | Mult -> disp_e1 ^ "*" ^ disp_e2
-       | Div -> disp_e1 ^ "/" ^ disp_e2
+       disp_e1 ^ string_of_operator op ^ disp_e2
      end             
 ;;
-display_expr t0;;
-display_expr t2;;
-display_expr t3;;
-display_expr t4;;
+expr_to_tree t0;;
+expr_to_tree t2;;
+expr_to_tree t3;;
+expr_to_tree t4;;
 let t_exemple_list = string_to_token_list "a b * c * e f + * ;";;
 let t_exemple = parse t_exemple_list;;
-display_expr t_exemple;;
+expr_to_tree t_exemple;;
 
 (* PARTIE IV *)
 (* Programme final *)
