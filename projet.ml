@@ -300,12 +300,16 @@ display_expr t_exemple;;
 
 
 let main string =
+  Printf.printf "notation postfixé : %s\n" string;
   let list = string_to_token_list string in
   let tree = parse list in
+  Printf.printf "expression : \n";
   display_expr tree;
   let tree_simplificate = simplificate tree in
+  Printf.printf "expression simplifié : \n";
   display_expr tree_simplificate;
 ;;
 
 (*TESTS*)
 main "x 3 + 5 7 + + 3 4 * 1 3 + / / ;";;
+main "3 y + 3 2 - * x x / * ;";;
