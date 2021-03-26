@@ -176,7 +176,11 @@ let string_of_operator op =
   | Minus -> "-"
 ;;
        
-let simplificate_expr op e1 e2 op1 op2 func =
+
+;;
+         
+let rec tree_to_expr tree =
+  let simplificate_expr op e1 e2 op1 op2 func =
   if (op1=op)&&(op2=op)
   then (tree_to_expr e1, tree_to_expr e2)
   else if op1=op
@@ -184,9 +188,7 @@ let simplificate_expr op e1 e2 op1 op2 func =
   else if op2=op
   then ("(" ^ tree_to_expr e1 ^ ")", tree_to_expr e2)
   else ("(" ^ tree_to_expr e1 ^ ")","(" ^ tree_to_expr e2 ^ ")")
-;;
-         
-let rec tree_to_expr tree =
+  in
   match tree with
   | Cst(x) -> string_of_int x
   | Var(x) -> string_of_char x 
