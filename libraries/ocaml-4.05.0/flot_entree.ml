@@ -1,37 +1,8 @@
-(** AUTHORS :    
-    
-    ANDRIANARIVONY HENINTSOA 
-    && 
-    CHEVAIS BENJAMIN 
- 
-**)
-
-(* Décommenter la commande '#directory ...' selon votre version d'OCaml *)
-
-(* OCaml version 4.02.1 *)
-(* #directory "libraries/ocaml-4.02.1+ocp1/";; *)
-
-(* OCaml version 4.02.3 *)
-(* #directory "libraries/ocaml-4.02.3/";; *)
-
-(* OCaml version 4.05.0 *)
-#directory "libraries/ocaml-4.05.0/";;
-
-(* OCaml version 4.08.1 *)
-(* #directory "libraries/ocaml-4.08.1/";; *)
-
-(* OCaml version 4.10.0 *)
-(* #directory "libraries/ocaml-4.10.0/";; *)
-
-(* OCaml version 4.11.1 *)
-(* #directory "libraries/ocaml-4.11.1/";; *)
-
-#load "expression_scanner.cmo";;
 open Expression_scanner;;
 open List;;
 
 
-(*==================== PARTIE I ====================*)
+(* PARTIE I *)
 (* analyse syntaxique et construction de l'arbre *)
 
 (* fonction vérifiant si un mot de Lukasiewicz postfixé est bien formé *)
@@ -48,12 +19,12 @@ let is_well_formed token_list =
   is_well_formed_aux = -1
 ;;
 
-(*TEST*)
 let test_well_formed = string_to_token_list "13 2 5 * 1 1 / - + ;";;
+
 is_well_formed test_well_formed;;
                   
 
-(* Définitions des types pour les arbres de syntaxe abstraite*)
+(* définitions des types pour les arbres de syntaxe abstraite*)
 type operator = | Plus | Minus | Mult | Div;;
 type tree =
   | Var of char
@@ -62,7 +33,7 @@ type tree =
   | Binary of operator * tree * tree
 ;;
 
-(* Fonction qui transforme un token en operator *)
+(* fonction qui transforme un token en operator *)
 let token_to_operator elem =
   match elem with
   | Add -> Plus
@@ -72,7 +43,7 @@ let token_to_operator elem =
   | _ -> invalid_arg "on ne peut pas convertir ce token en operator"
 ;;
 
-(* Fonctions qui transfoment une liste de token en arbre *)
+(* fonction qui transfome une liste de token en arbre *)
 let parse_aux token_list =
   let stack =
     fold_left(
@@ -87,21 +58,19 @@ let parse_aux token_list =
       ) [] token_list in
   hd stack
 ;;
-let parse token_list =
+
+let rec parse token_list =
   if(is_well_formed token_list)
   then parse_aux token_list
   else failwith "not a Lukasiewicz word" (* mettre autre chose qu'un failwith *)
 ;;
 
-(*TESTS*)
 let t1 = parse test_well_formed;;
 
-
-
-(*==================== PARTIE II ====================*)
+(* PARTIE II *)
 (* Simplification sur l'arbre *)
 
-(* Fonction associant une opération à la fonction correspondante  *)
+(* fonction qui simplifie  *)
 let simpl_cst op =
   match op with
   | Plus -> (+)
@@ -110,7 +79,7 @@ let simpl_cst op =
   | Div -> (/)
 ;;
 
-(* Fonction simplifiant une expression *)
+(* proposition concluante+opti *)
 let simpl_tree op e1 e2 =
   if(e1 = e2)
   then
@@ -129,7 +98,6 @@ let simpl_tree op e1 e2 =
     | _ -> Binary(op, e1, e2)
 ;;
 
-(* Fonction simplifiant l'arbre *)
 let rec simplificate tree =
   match tree with 
   | Binary(op, e1, e2) -> (
@@ -141,13 +109,12 @@ let rec simplificate tree =
   | _ -> tree
 ;;
 
-
-(*TESTS*)
 let t0_list = string_to_token_list "x 3 2 - * ;";;
 let t0 = parse t0_list;;
 simplificate t0;;
 
-simplificate t1;;
+
+(* Tests classiques *)
 
 let t2_list = string_to_token_list "1 2 + 4 3 - * ;";;
 let t2 = parse t2_list;;
@@ -161,17 +128,17 @@ let t4_list = string_to_token_list "x x - x x / + ~ ;";;
 let t4 = parse t4_list;;
 simplificate t4;;
 
+simplificate t1;;
 
 
-(*==================== PARTIE III ====================*)
+
+(* PARTIE III *)
 (* Affichage du résultat *)
 
-
-(* Fonction convertissant un char en string *)
 let string_of_char = String.make 1;;
 
+(* fonction qui transfrome un arbre en expression *)
 
-(* Fonction convertissant un opérateur au string correspondant *)
 let string_of_operator op =
   match op with
   | Mult -> "*"
@@ -179,18 +146,19 @@ let string_of_operator op =
   | Plus -> "+"
   | Minus -> "-"
 ;;
+       
 
-
-(* Fonction qui transfrome un arbre en expression de type string *)
+;;
+         
 let rec tree_to_expr tree =
-  let simplificate_expr op e1 e2 op1 op2 =
-    if (op1=op)&&(op2=op)
-    then (tree_to_expr e1, tree_to_expr e2)
-    else if op1=op
-    then (tree_to_expr e1,"(" ^ tree_to_expr e2 ^ ")")
-    else if op2=op
-    then ("(" ^ tree_to_expr e1 ^ ")", tree_to_expr e2)
-    else ("(" ^ tree_to_expr e1 ^ ")","(" ^ tree_to_expr e2 ^ ")")
+  let simplificate_expr op e1 e2 op1 op2 func =
+  if (op1=op)&&(op2=op)
+  then (tree_to_expr e1, tree_to_expr e2)
+  else if op1=op
+  then (tree_to_expr e1,"(" ^ tree_to_expr e2 ^ ")")
+  else if op2=op
+  then ("(" ^ tree_to_expr e1 ^ ")", tree_to_expr e2)
+  else ("(" ^ tree_to_expr e1 ^ ")","(" ^ tree_to_expr e2 ^ ")")
   in
   match tree with
   | Cst(x) -> string_of_int x
@@ -205,7 +173,7 @@ let rec tree_to_expr tree =
      begin
        let (expr_e1, expr_e2) = 
          match (e1, e2) with
-         | (Binary(op1,_,_),Binary(op2,_,_)) -> simplificate_expr op e1 e2 op1 op2
+         | (Binary(op1,_,_),Binary(op2,_,_)) -> simplificate_expr op e1 e2 op1 op2 tree_to_expr
          | (Binary(op1,_,_),_) ->
             begin
               if op1=op
@@ -223,7 +191,16 @@ let rec tree_to_expr tree =
        expr_e1 ^ string_of_operator op ^ expr_e2
      end             
 ;;
-
+tree_to_expr t0;;
+tree_to_expr t2;;
+tree_to_expr t3;;
+tree_to_expr t4;;
+let t_exemple_list_0 = string_to_token_list "a 2 2 ~ * + ;";;
+let t_exemple_0 = parse t_exemple_list_0;;
+tree_to_expr t_exemple_0;;
+let t_exemple_list = string_to_token_list "a b * c * e f + * ;";;
+let t_exemple = parse t_exemple_list;;
+tree_to_expr t_exemple;;
 
 (* A CONSERVER JUSQU'A CE QU'ON SOIT BON
 
@@ -274,33 +251,15 @@ let t_exemple = parse t_exemple_list;;
 string_of_tree t_exemple;;
  *)
 
-(* Fonction qui affiche une expression *)
 let display_expr tree =
   Printf.printf "%s\n" (tree_to_expr tree)
 ;;
 
-(*TESTS*)
-display_expr t0;;
-display_expr t1;;
-display_expr t2;;
-display_expr t3;;
-display_expr t4;;
-let t_exemple_list_0 = string_to_token_list "a 2 2 ~ * + ;";;
-let t_exemple_0 = parse t_exemple_list_0;;
-display_expr t_exemple_0;;
-let t_exemple_list = string_to_token_list "a b * c * e f + * ;";;
-let t_exemple = parse t_exemple_list;;
-display_expr t_exemple;;
-
-
-
-(*==================== PARTIE IV ====================*)
+(* PARTIE IV *)
 (* Programme final *)
 
-
-let main string =
-  Printf.printf "notation postfixé : %s\n" string;
-  let list = string_to_token_list string in
+let main() =
+  let list = input_to_token_list() in
   let tree = parse list in
   Printf.printf "expression : \n";
   display_expr tree;
@@ -309,9 +268,4 @@ let main string =
   display_expr tree_simplificate;
 ;;
 
-(*TESTS*)
-main "x 3 + 5 7 + + 3 4 * 1 3 + / / ;";;
-main "3 y + 3 2 - * x x / * ;";;
-
-(* parenthèse manquantes ??? *)
-main "x x - y y / + z 1 * n 0 + + m 0 * + * ~ ;";;
+main();;
