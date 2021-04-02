@@ -297,6 +297,8 @@ display_expr t_exemple;;
 (*==================== PARTIE IV ====================*)
 (* Programme final *)
 
+(*BEN*)
+
 let main_aux string =
   let token_list = string_to_token_list string in
   let (osef, res) =
@@ -308,7 +310,6 @@ let main_aux string =
       token_list ([], []) in
   res
 ;;
-
 
 let main string =
   let list = big_main string in
@@ -331,3 +332,51 @@ main "3 y + 3 2 - * x x / * ;";;
 (* parenthèse manquantes ??? *)
 main "x x - y y / + z 1 * n 0 + + m 0 * + * ~ ;";;
 main "n 0 +;";;
+
+
+(*HEN*)
+
+let main_aux string =
+  if ("" = string)
+  then
+    (
+    Printf.printf "--- PROCESSING COMPLETED ---\n";
+    "done"
+    )
+  else
+    (
+      let expr = string ^ ";" in
+      Printf.printf "Notation postfixé : %s\n" expr;
+      let list = string_to_token_list expr in
+      let tree = parse list in
+      Printf.printf "Expression : \n";
+      display_expr tree;
+      let tree_simplificate = simplificate tree in
+      Printf.printf "Expression simplifié : \n";
+      display_expr tree_simplificate;
+      Printf.printf " ========================= \n";
+      "done"
+    )
+;;
+
+let main input =
+  let list_expr = String.split_on_char ';' input in
+  map (fun expr -> main_aux expr) list_expr
+;;  
+      
+(*TESTS*)
+main "x 3 + 5 7 + + 3 4 * 1 3 + / / ;";;
+main "3 y + 3 2 - * x x / * ;";;
+main "34 56 2 + x * -;x 3 + 5 7 + + 3 4 * 1 3 + / /;a b * c * e f + *;";;
+
+
+(* parenthèse manquantes ??? *)
+main "x x - y y / + z 1 * n 0 + + m 0 * + * ~ ;";;
+main "n 0 +;";;
+
+(* TEST EN COURS *)
+open String;;
+main_aux "x x - y y / + z 1 * n 0 + + m 0 * + * ~ ;";;
+let post_fixe = "34 56 2 + x * -;x 3 + 5 7 + + 3 4 * 1 3 + / /;a b * c * e f + *;";;
+let list_expr = String.split_on_char ';' post_fixe;;
+map (fun expr ->  main_aux expr) list_expr;;
