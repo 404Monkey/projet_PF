@@ -309,9 +309,12 @@ let main string =
   display_expr tree_simplificate;
 ;;
 
+
+
 (*TESTS*)
 main "x 3 + 5 7 + + 3 4 * 1 3 + / / ;";;
 main "3 y + 3 2 - * x x / * ;";;
 
 (* parenthèse manquantes ??? *)
 main "x x - y y / + z 1 * n 0 + + m 0 * + * ~ ;";;
+main "n 0 +;";;
