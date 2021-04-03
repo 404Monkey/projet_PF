@@ -6,27 +6,6 @@
  
 **)
 
-(* Décommenter la commande '#directory ...' selon votre version d'OCaml *)
-
-(* OCaml version 4.02.1 *)
-(* #directory "libraries/ocaml-4.02.1+ocp1/";; *)
-
-(* OCaml version 4.02.3 *)
-(* #directory "libraries/ocaml-4.02.3/";; *)
-
-(* OCaml version 4.05.0 *)
-#directory "libraries/ocaml-4.05.0/";;
-
-(* OCaml version 4.08.1 *)
-(* #directory "libraries/ocaml-4.08.1/";; *)
-
-(* OCaml version 4.10.0 *)
-(* #directory "libraries/ocaml-4.10.0/";; *)
-
-(* OCaml version 4.11.1 *)
-(* #directory "libraries/ocaml-4.11.1/";; *)
-
-#load "expression_scanner.cmo";;
 open Expression_scanner;;
 open List;;
 
@@ -46,12 +25,7 @@ let is_well_formed token_list =
         | _ -> cpt+1
       ) 0 token_list in
   is_well_formed_aux = -1
-;;
-
-(*TEST*)
-let test_well_formed = string_to_token_list "13 2 5 * 1 1 / - + ;";;
-is_well_formed test_well_formed;;
-                  
+;;                
 
 (* Définitions des types pour les arbres de syntaxe abstraite*)
 type operator = | Plus | Minus | Mult | Div;;
@@ -92,10 +66,6 @@ let parse token_list =
   then parse_aux token_list
   else failwith "not a Lukasiewicz word"
 ;;
-
-(*TESTS*)
-let t1 = parse test_well_formed;;
-
 
 
 (*==================== PARTIE II ====================*)
@@ -140,23 +110,6 @@ let rec simplificate tree =
   | Unary(x) -> Unary(simplificate x)
   | _ -> tree
 ;;
-
-
-(*TESTS*)
-simplificate t1;;
-
-let t2_list = string_to_token_list "1 2 + 4 3 - * ;";;
-let t2 = parse t2_list;;
-simplificate t2;;
-
-let t3_list = string_to_token_list "1 x * y 0 + * ;";;
-let t3 = parse t3_list;;
-simplificate t3;;
-
-let t4_list = string_to_token_list "x x - x x / + ~ ;";;
-let t4 = parse t4_list;;
-simplificate t4;;
-
 
 
 (*==================== PARTIE III ====================*)
@@ -225,26 +178,12 @@ let display_expr tree =
   Printf.printf "%s\n" (tree_to_expr tree)
 ;;
 
-(*TESTS*)
-display_expr t0;;
-display_expr t1;;
-display_expr t2;;
-display_expr t3;;
-display_expr t4;;
-let t_exemple_list_0 = string_to_token_list "a 2 2 ~ * + ;";;
-let t_exemple_0 = parse t_exemple_list_0;;
-display_expr t_exemple_0;;
-let t_exemple_list = string_to_token_list "a b * c * e f + * ;";;
-let t_exemple = parse t_exemple_list;;
-display_expr t_exemple;;
-
-
 
 (*==================== PARTIE IV ====================*)
 (* Programme final *)
 
 let main_aux expr =
-  let token_list = string_to_token_list expr in
+  let token_list = input_to_token_list() in
   let (res, temp) =
     fold_right(fun elem (final_list, sub_list) ->
         if (elem = End && sub_list <> [])
@@ -254,8 +193,6 @@ let main_aux expr =
       token_list ([], []) in
   temp::res
 ;;
-
-main_aux "2 3 + ; 1 2 * ; 4 5 +;";;
 
 let main expr =
   let list = main_aux expr in
@@ -270,52 +207,4 @@ let main expr =
     list
 ;;
 
-
-
-(*TESTS*)
-main "x 3 + 5 7 + + 3 4 * 1 3 + / / ; 3 2 + ;";;
-main "3 y + 3 2 - * x x / * ;";;
-
-
-(*HEN*)
-
-let main_aux string =
-  if ("" = string)
-  then
-    (
-    Printf.printf "--- PROCESSING COMPLETED ---\n";
-    "done"
-    )
-  else
-    (
-      Printf.printf " ========================= \n";
-      let expr = string ^ ";" in
-      Printf.printf "Notation postfixé : %s\n" expr;
-      let list = string_to_token_list expr in
-      let tree = parse list in
-      Printf.printf "Expression : \n";
-      display_expr tree;
-      let tree_simplificate = simplificate tree in
-      Printf.printf "Expression simplifié : \n";
-      display_expr tree_simplificate;
-      "done"
-    )
-;;
-
-let main input =
-  let list_expr = String.split_on_char ';' input in
-  map (fun expr -> main_aux expr) list_expr
-;;  
-      
-(*TESTS*)
-main "x 3 + 5 7 + + 3 4 * 1 3 + / / ;";;
-main "3 y + 3 2 - * x x / * ;";;
-main "34 56 2 + x * -;x 3 + 5 7 + + 3 4 * 1 3 + / /;a b * c * e f + *;";;
-
-
-(* TEST EN COURS *)
-open String;;
-main_aux "x x - y y / + z 1 * n 0 + + m 0 * + * ~ ;";;
-let post_fixe = "34 56 2 + x * -;x 3 + 5 7 + + 3 4 * 1 3 + / /;a b * c * e f + *;";;
-let list_expr = String.split_on_char ';' post_fixe;;
-map (fun expr ->  main_aux expr) list_expr;;
+main()
